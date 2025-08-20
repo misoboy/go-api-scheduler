@@ -12,6 +12,7 @@ import (
 
 // Config holds the user's scheduler configuration.
 type Config struct {
+	ID          string `json:"id"`
 	StartTime   string `json:"startTime"`
 	RepeatValue int    `json:"repeatValue"`
 	RepeatUnit  string `json:"repeatUnit"`
@@ -25,7 +26,7 @@ func Init() {
 	// Empty for now, but good practice for future initialization.
 }
 
-// StartHandler handles the request to start the scheduler.
+// StartHandler handles the request to start a scheduler.
 func StartHandler(w http.ResponseWriter, r *http.Request) {
 	var config Config
 	err := json.NewDecoder(r.Body).Decode(&config)
@@ -34,14 +35,29 @@ func StartHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	scheduler.StartScheduler(scheduler.SchedulerConfig(config))
+	scheduler.StartScheduler(config.ID, scheduler.SchedulerConfig{
+		StartTime:   config.StartTime,
+		RepeatValue: config.RepeatValue,
+		RepeatUnit:  config.RepeatUnit,
+		APIURL:      config.APIURL,
+		HTTPMethod:  config.HTTPMethod,
+		Payload:     config.Payload,
+	})
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("스케줄러가 시작되었습니다."))
 }
 
-// StopHandler handles the request to stop the scheduler.
+// StopHandler handles the request to stop a scheduler.
 func StopHandler(w http.ResponseWriter, r *http.Request) {
-	scheduler.StopScheduler()
+	var reqBody map[string]string
+	err := json.NewDecoder(r.Body).Decode(&reqBody)
+	if err != nil {
+		http.Error(w, "잘못된 요청 본문입니다.", http.StatusBadRequest)
+		return
+	}
+
+	id := reqBody["id"]
+	scheduler.StopScheduler(id)
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("스케줄러가 중지되었습니다."))
 }

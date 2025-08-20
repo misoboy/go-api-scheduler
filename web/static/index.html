@@ -15,7 +15,7 @@
             align-items: flex-start;
             padding: 20px;
             box-sizing: border-box;
-            height: 100vh;
+            min-height: 100vh;
         }
         .container {
             background: #fff;
@@ -23,7 +23,6 @@
             border-radius: 15px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
             width: 100%;
-            max-width: 800px;
             display: flex;
             flex-direction: column;
             gap: 20px;
@@ -34,10 +33,45 @@
             margin-bottom: 20px;
             font-weight: 700;
         }
-        .form-section, .console-section {
+        #schedulerList {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .scheduler-group {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
             display: flex;
             flex-direction: column;
             gap: 15px;
+            min-width: 300px;
+            flex-grow: 1;
+            flex-shrink: 1;
+            flex-basis: 300px;
+        }
+        .scheduler-group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .scheduler-group-header h3 {
+            margin: 0;
+            white-space: nowrap;
+        }
+        .remove-button {
+            padding: 8px 12px;
+            border-radius: 8px;
+            background-color: #95a5a6;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+        }
+        .remove-button:hover {
+            background-color: #7f8c8d;
         }
         .form-group {
             display: flex;
@@ -45,7 +79,6 @@
         }
         label {
             font-weight: 700;
-            margin-bottom: 5px;
             color: #555;
         }
         input[type="text"], input[type="time"], select {
@@ -105,39 +138,45 @@
             transition: background-color 0.3s ease, transform 0.2s ease;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
-        #startButton {
+        .scheduler-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .scheduler-buttons .start-button {
             background-color: #2ecc71;
             color: white;
         }
-        #startButton:hover {
+        .scheduler-buttons .start-button:hover {
             background-color: #27ae60;
             transform: translateY(-2px);
         }
-        #stopButton {
+        .scheduler-buttons .stop-button {
             background-color: #e74c3c;
             color: white;
         }
-        #stopButton:hover {
+        .scheduler-buttons .stop-button:hover {
             background-color: #c0392b;
             transform: translateY(-2px);
         }
-        #startButton:disabled, #stopButton:disabled {
+        .start-button:disabled, .stop-button:disabled {
             background-color: #bdc3c7;
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
         }
-        #logConsole {
-            height: 300px;
-            resize: vertical;
+        .log-panel {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 10px;
             background-color: #2c3e50;
             color: #ecf0f1;
             font-family: monospace;
-            padding: 15px;
-            border-radius: 8px;
+            height: 150px;
+            overflow-y: scroll;
+            margin-top: 10px;
             line-height: 1.5;
             white-space: pre-wrap;
-            overflow-y: scroll;
         }
         .log-entry {
             margin-bottom: 5px;
@@ -162,93 +201,59 @@
         }
         .payload-row input {
             flex: 1;
+            min-width: 0;
+        }
+        .add-remove-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .add-remove-buttons button {
+            background-color: #3498db;
+            color: white;
+            font-size: 14px;
+            padding: 8px 12px;
         }
         #addPayload {
             background-color: #3498db;
             color: white;
             font-size: 14px;
             padding: 8px 12px;
-            align-self: flex-end;
-            margin-top: -5px;
         }
-        #addPayload:hover {
-            background-color: #2980b9;
+        #addScheduler {
+            width: 100%;
+            background-color: #1abc9c;
+            color: white;
+            margin-top: 20px;
+        }
+        #addScheduler:hover {
+            background-color: #16a085;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Go API 스케줄러</h1>
-        <div class="form-section">
-            <div class="form-group">
-                <label for="startTime">시작 시각 (HH:mm:ss)</label>
-                <div class="time-input-container">
-                    <input type="time" id="startTime" step="1">
-                    <button id="setCurrentTime">현재 시간</button>
-                </div>
-            </div>
-            <div class="form-group">
-                <label for="repeatValue">반복 주기</label>
-                <div class="repeat-input">
-                    <input type="number" id="repeatValue" value="1" min="1">
-                    <select id="repeatUnit">
-                        <option value="h">시간 (h)</option>
-                        <option value="m">분 (m)</option>
-                        <option value="s">초 (s)</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-group">
-                <label for="apiURL">호출 API URL</label>
-                <input type="text" id="apiURL" placeholder="http://example.com/api" value="http://localhost:8080/fake-server">
-            </div>
-            <div class="form-group">
-                <label for="httpMethod">HTTP 메서드</label>
-                <select id="httpMethod">
-                    <option value="GET">GET</option>
-                    <option value="POST">POST</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Payload (Key/Value)</label>
-                <div id="payloadContainer" class="payload-container">
-                    <div class="payload-row">
-                        <input type="text" class="payload-key" placeholder="Key">
-                        <input type="text" class="payload-value" placeholder="Value">
-                    </div>
-                </div>
-                <button id="addPayload">항목 추가</button>
-            </div>
+        <div id="schedulerList">
+            <!-- Scheduler groups will be added here dynamically -->
         </div>
-        <div class="button-group">
-            <button id="startButton">스케줄 시작</button>
-            <button id="stopButton" disabled>스케줄 중지</button>
-        </div>
-        <div class="console-section">
-            <label>응답 결과 콘솔 로그</label>
-            <div id="logConsole"></div>
-        </div>
+        <button id="addScheduler">새로운 스케줄러 추가</button>
     </div>
 
     <script>
-        const startButton = document.getElementById('startButton');
-        const stopButton = document.getElementById('stopButton');
-        const logConsole = document.getElementById('logConsole');
-        const payloadContainer = document.getElementById('payloadContainer');
-        const addPayloadButton = document.getElementById('addPayload');
-        const setCurrentTimeButton = document.getElementById('setCurrentTime');
-        const startTimeInput = document.getElementById('startTime');
+        const schedulerList = document.getElementById('schedulerList');
+        const addSchedulerButton = document.getElementById('addScheduler');
         let pollingInterval;
+        let schedulerCount = 0;
 
-        function updateTime() {
+        function updateTime(inputElement) {
             const now = new Date();
             const hours = now.getHours().toString().padStart(2, '0');
             const minutes = now.getMinutes().toString().padStart(2, '0');
             const seconds = now.getSeconds().toString().padStart(2, '0');
-            startTimeInput.value = `${hours}:${minutes}:${seconds}`;
+            inputElement.value = `${hours}:${minutes}:${seconds}`;
         }
         
-        function addPayloadRow() {
+        function addPayloadRow(payloadContainer) {
             const newRow = document.createElement('div');
             newRow.className = 'payload-row';
             newRow.innerHTML = `
@@ -258,100 +263,210 @@
             payloadContainer.appendChild(newRow);
         }
 
-        async function updateLog(message) {
-            logConsole.innerHTML += `<div class="log-entry"><span class="log-time">[${new Date().toLocaleTimeString()}]</span><span class="log-message"> ${message}</span></div>`;
-            logConsole.scrollTop = logConsole.scrollHeight;
-        }
-
         async function fetchLogs() {
             try {
-                const response = await fetch('/logs');
+                const response = await fetch(window.location.origin + '/logs');
                 const logs = await response.json();
                 
-                logConsole.innerHTML = '';
+                document.querySelectorAll('.log-panel').forEach(panel => panel.innerHTML = '');
+
                 logs.forEach(entry => {
-                    logConsole.innerHTML += `<div class="log-entry"><span class="log-time">[${entry.time}]</span><span class="log-message"> ${entry.message}</span></div>`;
-                    // Check for stop message to update button states
-                    if (entry.message.includes('스케줄러가 중지되었습니다.')) {
-                        startButton.disabled = false;
-                        stopButton.disabled = true;
-                        clearInterval(pollingInterval);
+                    const logMatch = entry.message.match(/^\[(scheduler-\d+)\]/);
+                    let groupId = logMatch ? logMatch[1] : null;
+                    
+                    if (groupId) {
+                        const logPanel = document.querySelector(`[data-id="${groupId}"] .log-panel`);
+                        if (logPanel) {
+                            logPanel.innerHTML += `<div class="log-entry"><span class="log-time">[${entry.time}]</span><span class="log-message"> ${entry.message.replace(`[${groupId}] `, '')}</span></div>`;
+                            logPanel.scrollTop = logPanel.scrollHeight;
+                        }
+                    } else {
+                        const firstActivePanel = document.querySelector('.scheduler-group .log-panel');
+                        if (firstActivePanel) {
+                            firstActivePanel.innerHTML += `<div class="log-entry"><span class="log-time">[${entry.time}]</span><span class="log-message"> ${entry.message}</span></div>`;
+                        }
                     }
                 });
-                logConsole.scrollTop = logConsole.scrollHeight;
+
+                document.querySelectorAll('.scheduler-group').forEach(group => {
+                    const groupId = group.dataset.id;
+                    const startButton = group.querySelector('.start-button');
+                    const stopButton = group.querySelector('.stop-button');
+                    if (logs.some(entry => entry.message.includes(`[${groupId}] 스케줄러가 실행 중입니다.`))) {
+                        startButton.disabled = true;
+                        stopButton.disabled = false;
+                    } else {
+                        startButton.disabled = false;
+                        stopButton.disabled = true;
+                    }
+                });
             } catch (error) {
                 console.error("로그를 가져오는 중 오류 발생:", error);
             }
         }
 
-        addPayloadButton.addEventListener('click', addPayloadRow);
-        setCurrentTimeButton.addEventListener('click', updateTime);
-
-        startButton.addEventListener('click', async () => {
-            const payloadMap = {};
-            document.querySelectorAll('.payload-row').forEach(row => {
-                const key = row.querySelector('.payload-key').value;
-                const value = row.querySelector('.payload-value').value;
-                if (key) {
-                    payloadMap[key] = value;
+        function createSchedulerGroup() {
+            schedulerCount++;
+            const groupId = `scheduler-${schedulerCount}`;
+            const groupHtml = `
+                <div class="scheduler-group" data-id="${groupId}">
+                    <div class="scheduler-group-header">
+                        <h3>스케줄러 #${schedulerCount}</h3>
+                        <button type="button" class="remove-button">스케줄러 삭제</button>
+                    </div>
+                    <div class="form-group">
+                        <label>시작 시각 (HH:mm:ss)</label>
+                        <div class="time-input-container">
+                            <input type="time" class="startTime" step="1">
+                            <button class="setCurrentTime">현재 시간</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>반복 주기</label>
+                        <div class="repeat-input">
+                            <input type="number" class="repeatValue" value="1" min="1">
+                            <select class="repeatUnit">
+                                <option value="h">시간 (h)</option>
+                                <option value="m">분 (m)</option>
+                                <option value="s">초 (s)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>호출 API URL</label>
+                        <input type="text" class="apiURL" placeholder="http://example.com/api" value="http://localhost:8080/fake-server">
+                    </div>
+                    <div class="form-group">
+                        <label>HTTP 메서드</label>
+                        <select class="httpMethod">
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Payload (Key/Value)</label>
+                        <div class="payload-container">
+                            <div class="payload-row">
+                                <input type="text" class="payload-key" placeholder="Key">
+                                <input type="text" class="payload-value" placeholder="Value">
+                            </div>
+                        </div>
+                        <button type="button" class="addPayload">항목 추가</button>
+                    </div>
+                    <div class="scheduler-buttons">
+                        <button class="start-button">스케줄 시작</button>
+                        <button class="stop-button" disabled>스케줄 중지</button>
+                    </div>
+                    <div class="form-group">
+                        <label>응답 결과 콘솔 로그</label>
+                        <div class="log-panel"></div>
+                    </div>
+                </div>
+            `;
+            schedulerList.insertAdjacentHTML('beforeend', groupHtml);
+            
+            const newGroup = document.querySelector(`[data-id="${groupId}"]`);
+            const startTimeInput = newGroup.querySelector('.startTime');
+            const setCurrentTimeButton = newGroup.querySelector('.setCurrentTime');
+            const payloadContainer = newGroup.querySelector('.payload-container');
+            const addPayloadButton = newGroup.querySelector('.addPayload');
+            const removeSchedulerButton = newGroup.querySelector('.remove-button');
+            const startButton = newGroup.querySelector('.start-button');
+            const stopButton = newGroup.querySelector('.stop-button');
+            
+            updateTime(startTimeInput);
+            
+            setCurrentTimeButton.addEventListener('click', () => updateTime(startTimeInput));
+            addPayloadButton.addEventListener('click', () => addPayloadRow(payloadContainer));
+            removeSchedulerButton.addEventListener('click', () => {
+                const isRunning = !startButton.disabled;
+                newGroup.remove();
+                if (isRunning) {
+                    fetch(window.location.origin + '/stop', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: groupId })
+                    });
                 }
             });
 
-            const config = {
-                startTime: startTimeInput.value,
-                repeatValue: parseInt(document.getElementById('repeatValue').value),
-                repeatUnit: document.getElementById('repeatUnit').value,
-                apiURL: document.getElementById('apiURL').value,
-                httpMethod: document.getElementById('httpMethod').value,
-                payload: JSON.stringify(payloadMap),
-            };
-
-            try {
-                const response = await fetch('/start', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(config)
+            startButton.addEventListener('click', async () => {
+                const payloadMap = {};
+                newGroup.querySelectorAll('.payload-row').forEach(row => {
+                    const key = row.querySelector('.payload-key').value;
+                    const value = row.querySelector('.payload-value').value;
+                    if (key) {
+                        payloadMap[key] = value;
+                    }
                 });
 
-                const result = await response.text();
-                if (response.ok) {
-                    startButton.disabled = true;
-                    stopButton.disabled = false;
-                    await updateLog("스케줄러 시작 요청이 성공적으로 전송되었습니다.");
-                    pollingInterval = setInterval(fetchLogs, 1000); // Poll for logs every second
-                } else {
-                    await updateLog(`스케줄러 시작 실패: ${result}`);
+                const config = {
+                    id: groupId,
+                    startTime: startTimeInput.value,
+                    repeatValue: parseInt(newGroup.querySelector('.repeatValue').value),
+                    repeatUnit: newGroup.querySelector('.repeatUnit').value,
+                    apiURL: newGroup.querySelector('.apiURL').value,
+                    httpMethod: newGroup.querySelector('.httpMethod').value,
+                    payload: JSON.stringify(payloadMap),
+                };
+
+                try {
+                    const response = await fetch(window.location.origin + '/start', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(config)
+                    });
+
+                    const result = await response.text();
+                    if (response.ok) {
+                        startButton.disabled = true;
+                        stopButton.disabled = false;
+                        newGroup.querySelector('.log-panel').innerHTML += `<div class="log-entry"><span class="log-time">[${new Date().toLocaleTimeString()}]</span><span class="log-message"> [${groupId}] 스케줄러 시작 요청이 성공적으로 전송되었습니다.</span></div>`;
+                    } else {
+                        newGroup.querySelector('.log-panel').innerHTML += `<div class="log-entry"><span class="log-time">[${new Date().toLocaleTimeString()}]</span><span class="log-message"> [${groupId}] 스케줄러 시작 실패: ${result}</span></div>`;
+                    }
+                } catch (error) {
+                    newGroup.querySelector('.log-panel').innerHTML += `<div class="log-entry"><span class="log-time">[${new Date().toLocaleTimeString()}]</span><span class="log-message"> [${groupId}] 네트워크 오류: ${error.message}</span></div>`;
                 }
-            } catch (error) {
-                await updateLog(`네트워크 오류: ${error.message}`);
-            }
-        });
+            });
 
-        stopButton.addEventListener('click', async () => {
-            try {
-                const response = await fetch('/stop', {
-                    method: 'POST'
-                });
+            stopButton.addEventListener('click', async () => {
+                try {
+                    const response = await fetch(window.location.origin + '/stop', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ id: groupId })
+                    });
 
-                const result = await response.text();
-                if (response.ok) {
-                    startButton.disabled = false;
-                    stopButton.disabled = true;
-                    await updateLog("스케줄러 중지 요청이 성공적으로 전송되었습니다.");
-                    clearInterval(pollingInterval);
-                } else {
-                    await updateLog(`스케줄러 중지 실패: ${result}`);
+                    const result = await response.text();
+                    if (response.ok) {
+                        startButton.disabled = false;
+                        stopButton.disabled = true;
+                        newGroup.querySelector('.log-panel').innerHTML += `<div class="log-entry"><span class="log-time">[${new Date().toLocaleTimeString()}]</span><span class="log-message"> [${groupId}] 스케줄러 중지 요청이 성공적으로 전송되었습니다.</span></div>`;
+                    } else {
+                        newGroup.querySelector('.log-panel').innerHTML += `<div class="log-entry"><span class="log-time">[${new Date().toLocaleTimeString()}]</span><span class="log-message"> [${groupId}] 스케줄러 중지 실패: ${result}</span></div>`;
+                    }
+                } catch (error) {
+                    newGroup.querySelector('.log-panel').innerHTML += `<div class="log-entry"><span class="log-time">[${new Date().toLocaleTimeString()}]</span><span class="log-message"> [${groupId}] 네트워크 오류: ${error.message}</span></div>`;
                 }
-            } catch (error) {
-                await updateLog(`네트워크 오류: ${error.message}`);
+            });
+            
+            if (!pollingInterval) {
+                 pollingInterval = setInterval(fetchLogs, 1000);
             }
+        }
+        
+        addSchedulerButton.addEventListener('click', createSchedulerGroup);
+        
+        createSchedulerGroup();
+        
+        window.addEventListener('beforeunload', () => {
+            clearInterval(pollingInterval);
         });
-
-        // Set initial time and fetch logs on page load
-        updateTime();
-        fetchLogs();
     </script>
 </body>
 </html>
