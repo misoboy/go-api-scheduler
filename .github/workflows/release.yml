@@ -62,9 +62,9 @@ jobs:
 
       - name: Generate Release Notes
         id: changelog
-        uses: git-chglog/git-chglog@v1.4.0
+        uses: git-chglog/git-chglog@v2.0.3
         with:
-          config_file: '.chglog/config.yml'
+          config_file: '.github/chglog/config.yml'
           tag_name: ${{ github.ref_name }}
           output: 'CHANGELOG.md'
       
