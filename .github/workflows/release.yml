@@ -60,12 +60,29 @@ jobs:
         with:
           path: .release_artifacts
 
+      - name: Generate Release Notes
+        id: changelog
+        uses: git-chglog/git-chglog@v1.4.0
+        with:
+          config_file: '.chglog/config.yml'
+          tag_name: ${{ github.ref_name }}
+          output: 'CHANGELOG.md'
+      
+      - name: Read generated Changelog
+        id: read_changelog
+        run: |
+          CHANGELOG_BODY=$(cat CHANGELOG.md)
+          echo "CHANGELOG_BODY<<EOF" >> $GITHUB_ENV
+          echo "$CHANGELOG_BODY" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref }}
-          name: Release ${{ github.ref }}
+          name: Release ${{ github.ref_name }}
+          body: ${{ env.CHANGELOG_BODY }}
           draft: false
           prerelease: false
 
