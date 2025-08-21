@@ -74,7 +74,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: |
-            .release_artifacts/go-api-scheduler-linux-amd64.tar.gz
-            .release_artifacts/go-api-scheduler-linux-arm64.tar.gz
-            .release_artifacts/go-api-scheduler-windows-amd64.zip
+          files: .release_artifacts/**/*
