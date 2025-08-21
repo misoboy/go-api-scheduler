@@ -25,25 +25,28 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Build
+      - name: Build and create archive
         run: |
-          mkdir -p .build/${{ matrix.goos }}-${{ matrix.goarch }}
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} make build
+          BUILD_DIR=".build/${{ matrix.goos }}-${{ matrix.goarch }}"
+          BIN_NAME="go-api-scheduler"
+          ARCHIVE_NAME="go-api-scheduler-${{ matrix.goos }}-${{ matrix.goarch }}"
           
-      - name: Create archive
-        run: |
-          cd .build/${{ matrix.goos }}-${{ matrix.goarch }}
+          mkdir -p ${BUILD_DIR}
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o ${BUILD_DIR}/${BIN_NAME} ./cmd/api-scheduler
+          
           if [ "${{ matrix.goos }}" == "windows" ]; then
-            zip -r ../go-api-scheduler-${{ matrix.goos }}-${{ matrix.goarch }}.zip .
+            zip -r ${ARCHIVE_NAME}.zip ${BUILD_DIR}
+            echo "ARCHIVE_PATH=${ARCHIVE_NAME}.zip" >> $GITHUB_ENV
           else
-            tar -czvf ../go-api-scheduler-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz .
+            tar -czvf ${ARCHIVE_NAME}.tar.gz ${BUILD_DIR}
+            echo "ARCHIVE_PATH=${ARCHIVE_NAME}.tar.gz" >> $GITHUB_ENV
           fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: go-api-scheduler-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: .build/go-api-scheduler-${{ matrix.goos }}-${{ matrix.goarch }}.*
+          name: ${{ env.ARCHIVE_PATH }}
+          path: ${{ env.ARCHIVE_PATH }}
           
   create_release:
     name: Create GitHub Release
@@ -57,9 +60,6 @@ jobs:
         with:
           path: .release_artifacts
 
-      - name: List files
-        run: ls -R .release_artifacts
-
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
@@ -70,8 +70,11 @@ jobs:
           prerelease: false
 
       - name: Upload release assets
-        uses: actions/upload-release-asset@v1
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: .release_artifacts/**/*
-          asset_name: go-api-scheduler-binaries.zip
+          files: |
+            .release_artifacts/go-api-scheduler-linux-amd64.tar.gz
+            .release_artifacts/go-api-scheduler-linux-arm64.tar.gz
+            .release_artifacts/go-api-scheduler-windows-amd64.zip
