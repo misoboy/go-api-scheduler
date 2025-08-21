@@ -1,0 +1,77 @@
+name: Go Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build_binaries:
+    name: Build binaries
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, windows]
+        goarch: [amd64, arm64]
+        exclude: # Go doesn't support windows/arm64 natively
+          - goos: windows
+            goarch: arm64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Build
+        run: |
+          mkdir -p .build/${{ matrix.goos }}-${{ matrix.goarch }}
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} make build
+          
+      - name: Create archive
+        run: |
+          cd .build/${{ matrix.goos }}-${{ matrix.goarch }}
+          if [ "${{ matrix.goos }}" == "windows" ]; then
+            zip -r ../go-api-scheduler-${{ matrix.goos }}-${{ matrix.goarch }}.zip .
+          else
+            tar -czvf ../go-api-scheduler-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz .
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-api-scheduler-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: .build/go-api-scheduler-${{ matrix.goos }}-${{ matrix.goarch }}.*
+          
+  create_release:
+    name: Create GitHub Release
+    needs: build_binaries
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: .release_artifacts
+
+      - name: List files
+        run: ls -R .release_artifacts
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload release assets
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: .release_artifacts/**/*
+          asset_name: go-api-scheduler-binaries.zip
